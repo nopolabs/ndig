@@ -1,0 +1,24 @@
+{
+  "name": "ndig",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "pretest": "npm run lint",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "posttest": "npm run format",
+    "format": "prettier --loglevel warn --write \"**/*.{js,css,md}\"",
+    "lint": "eslint . --cache --fix"
+  },
+  "keywords": [],
+  "author": "Dan Revel <danrevel@gmail.com> (https://noco.ws/)",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "zx": "^7.0.8"
+  },
+  "devDependencies": {
+    "eslint": "^8.23.0",
+    "prettier": "^2.7.1"
+  }
+}
