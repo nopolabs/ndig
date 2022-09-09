@@ -78,7 +78,7 @@ async function dig(domain, options) {
 }
 
 const program = new Command()
-	.name('jdig')
+	.name('ndig')
 	.version('0.0.1')
 	.description('Get DNS records using dig')
 	.addHelpText('after', "\nSupported types: " + ALL_TYPES.join(', ') + ", or ALL")
@@ -90,7 +90,7 @@ const program = new Command()
 	.action(dig);
 
 function fixArgv(argv) {
-	if (argv.includes('--') || argv.includes('--help') || argv.includes('--h')) {
+	if (argv.length < 3 || argv.includes('--') || argv.includes('--help') || argv.includes('--h')) {
 		return argv;
 	}
 	const domain = argv.slice(-1);
@@ -100,4 +100,4 @@ function fixArgv(argv) {
 
 const argv = fixArgv(process.argv)
 
-await program.parseAsync(argv);
+program.parse(argv);
