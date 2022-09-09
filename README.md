@@ -2,7 +2,7 @@
 
 ## usage
 ```shell
-Usage: jdig [options] <domain>
+Usage: ndig [options] <domain>
 
 Get DNS records using dig
 
