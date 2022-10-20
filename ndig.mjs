@@ -38,7 +38,7 @@ async function getRecords(ns, domain, type) {
 	// console.log(`dig +noall +answer -t "${type}" "${ns}" "${domain}"`);
 	const records = await $`dig +noall +answer -t "${type}" "${ns}" "${domain}"`;
 	return  records.stdout.trim().split(/\r?\n/)
-		.filter(line => line.startsWith(domain + ".\t"));
+		.filter(line => line.startsWith(domain + ".\t") || line.startsWith(domain + ". "));
 }
 
 async function getA(ns, domain) {
