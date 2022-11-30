@@ -35,7 +35,6 @@ async function getAuthoritativeNameServer(domain) {
 }
 
 async function getRecords(ns, domain, type) {
-	// console.log(`dig +noall +answer -t "${type}" "${ns}" "${domain}"`);
 	const records = await $`dig +noall +answer -t "${type}" "${ns}" "${domain}"`;
 	return  records.stdout.trim().split(/\r?\n/)
 		.filter(line => line.startsWith(domain + ".\t") || line.startsWith(domain + ". "));
@@ -62,12 +61,27 @@ async function getAll(ns, domain, types) {
 	return all;
 }
 
+function getNameserver(nameserver) {
+	switch(nameserver) {
+		case 'cloudflare': return '1.1.1.1';
+		case 'comodo': return '8.26.56.26';
+		case 'google': return '8.8.8.8';
+		case 'opendns': return '208.67.222.222';
+		case 'quad9': return '9.9.9.9';
+		case 'verisign': return '64.6.64.6';
+		default: return nameserver;
+	}
+}
+
 async function dig(domain, options) {
+	$.verbose = !!options.verbose;
 	if (options.type && options.short) {
 		exitWithError("only one of -t and -s allowed")
 	}
 	const types = options.type ? options.type : options.short ? options.short : ['ALL'];
-	const ns = await getAuthoritativeNameServer(domain)
+	const ns = options.nameserver
+		? getNameserver(options.nameserver)
+		: await getAuthoritativeNameServer(domain);
 	const recordsMap = await getAll(ns, domain, types);
 	const format = options.short
 		? (record, type) => record.replace(/^\S+\s+\S+\s+\S+\s+\S+\s+/, '')
@@ -84,6 +98,8 @@ const program = new Command()
 	.addHelpText('after', "\nSupported types: " + ALL_TYPES.join(', ') + ", or ALL")
 	.addHelpCommand(true)
 	.helpOption(true)
+	.option('-v, --verbose', 'verbose output')
+	.option('-n, --nameserver [nameserver]', 'nameserver to query (default is SOA)')
 	.option('-t, --type [type...]', 'record type')
 	.option('-s, --short [type...]', 'record type (short output)')
 	.argument('<domain>', 'domain')
