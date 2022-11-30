@@ -4,6 +4,7 @@
 
 import { Command } from 'commander';
 import { $, chalk } from 'zx';
+import { format } from 'util';
 
 $.verbose = false;
 
@@ -66,11 +67,12 @@ function getNameserver(nameserver) {
 }
 
 function getCompareValue(record, type) {
+	const fields = record.split(/\s+/);
 	if (type === 'MX') {
-		// cast to number
-		return +record.split(/\s+/)[4];
+		const priority = "0000"+fields[4];
+		return priority.substring(priority.length - 5) + " " + fields[5];
 	}
-	return record.split(/\s+/)[4];
+	return fields[4];
 }
 
 async function dig(domain, options) {
