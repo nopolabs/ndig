@@ -40,14 +40,6 @@ async function getRecords(ns, domain, type) {
 		.filter(line => line.startsWith(domain + ".\t") || line.startsWith(domain + ". "));
 }
 
-async function getA(ns, domain) {
-	return await getRecords(ns, domain, 'A');
-}
-
-async function getSOA(ns, domain) {
-	return await getRecords(ns, domain, 'SOA');
-}
-
 async function getAll(ns, domain, types) {
 	types = types.map(t => t.toUpperCase());
 	if (types.includes('ALL') || types.includes('ANY')) {
@@ -73,6 +65,14 @@ function getNameserver(nameserver) {
 	}
 }
 
+function getCompareValue(record, type) {
+	if (type === 'MX') {
+		// cast to number
+		return +record.split(/\s+/)[4];
+	}
+	return record.split(/\s+/)[4];
+}
+
 async function dig(domain, options) {
 	$.verbose = !!options.verbose;
 	if (options.type && options.short) {
@@ -84,21 +84,36 @@ async function dig(domain, options) {
 		: await getAuthoritativeNameServer(domain);
 	const recordsMap = await getAll(ns, domain, types);
 	const format = options.short
-		? (record, type) => record.replace(/^\S+\s+\S+\s+\S+\s+\S+\s+/, '')
-		: (record, type) => record;
+		? (record) => record.replace(/^\S+\s+\S+\s+\S+\s+\S+\s+/, '')
+		: (record) => record;
 	recordsMap.forEach((records, type) => {
-		records.forEach(record => console.log(format(record, type)));
+		if (!options.unsorted) {
+			records.sort((a, b) => {
+				// compare the 5th field of each record
+				const av = getCompareValue(a, type);
+				const bv = getCompareValue(b, type);
+				if (av < bv) {
+					return -1;
+				}
+				if (av > bv) {
+					return 1;
+				}
+				return 0;
+			});
+		}
+		records.forEach(record => console.log(format(record)));
 	});
 }
 
 const program = new Command()
 	.name('ndig')
-	.version('0.0.1')
+	.version('0.1.0')
 	.description('Get DNS records using dig')
 	.addHelpText('after', "\nSupported types: " + ALL_TYPES.join(', ') + ", or ALL")
 	.addHelpCommand(true)
 	.helpOption(true)
 	.option('-v, --verbose', 'verbose output')
+	.option('-u, --unsorted', 'unsorted output')
 	.option('-n, --nameserver [nameserver]', 'nameserver to query (default is SOA)')
 	.option('-t, --type [type...]', 'record type')
 	.option('-s, --short [type...]', 'record type (short output)')
