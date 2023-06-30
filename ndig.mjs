@@ -4,7 +4,6 @@
 
 import { Command } from 'commander';
 import { $, chalk } from 'zx';
-import { format } from 'util';
 
 $.verbose = false;
 
@@ -28,11 +27,31 @@ function exitWithError(errorMessage) {
 
 async function getAuthoritativeNameServer(domain) {
 	const result = await $`dig +short -t "SOA" "${domain}"`
-	const soa = result.stdout.split('. ')[0];
+	return result.stdout.split('. ')[0];
+}
+
+async function recursiveAuthoritativeNameServer(domain, candidate) {
+	let soa = await getAuthoritativeNameServer(candidate)
 	if (soa) {
+		console.log('Zone: ' + candidate);
 		return soa;
 	}
-	exitWithError(`No SOA for "${domain}"`);
+	let parent = candidate.match(/[^.]+\.(.+)/)[1];
+	if (parent === candidate) {
+		exitWithError(`No SOA for "${domain}"`);
+	}
+	return  await recursiveAuthoritativeNameServer(domain, parent)
+}
+
+async function findAuthoritativeNameServer(domain) {
+	const soa = await recursiveAuthoritativeNameServer(domain, domain)
+	if (!soa) {
+		let parent = domain.split('.', 2)[0];
+		if (parent === domain) {
+			exitWithError(`No SOA for "${domain}"`);
+		}
+	}
+	return soa;
 }
 
 async function getRecords(ns, domain, type) {
@@ -83,7 +102,7 @@ async function dig(domain, options) {
 	const types = options.type ? options.type : options.short ? options.short : ['ALL'];
 	const ns = options.nameserver
 		? getNameserver(options.nameserver)
-		: await getAuthoritativeNameServer(domain);
+		: await findAuthoritativeNameServer(domain);
 	const recordsMap = await getAll(ns, domain, types);
 	const format = options.short
 		? (record) => record.replace(/^\S+\s+\S+\s+\S+\s+\S+\s+/, '')
