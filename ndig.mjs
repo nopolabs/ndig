@@ -17,8 +17,16 @@ $.verbose = false;
 // SOA (Start Of Authority)
 // SRV (location of service)
 // TXT (Descriptive text)
+// RRSIG (DNSSEC signature)
+// DNSKEY (DNSSEC public key)
+// DS (DNSSEC public key hash)
+// NSEC (DNSSEC denial-of-existence)
+// NSEC3 (DNSSEC denial-of-existence)
+// CDNSKEY (DNSSEC child zone public key)
+// CDS (DNSSEC child zone public key hash)
 
-const ALL_TYPES = ['A', 'AAAA', 'ALIAS', 'CNAME', 'MX', 'NS', 'PTR', 'SOA', 'SRV', 'TXT'];
+const DNSSEC_TYPES = ['RRSIG', 'DNSKEY', 'DS', 'NSEC', 'NSEC3', 'CDNSKEY', 'CDS'];
+const ALL_TYPES = ['A', 'AAAA', 'ALIAS', 'CNAME', 'MX', 'NS', 'PTR', 'SOA', 'SRV', 'TXT'].concat(DNSSEC_TYPES);
 
 function exitWithError(errorMessage) {
 	console.error(chalk.red(errorMessage));
@@ -64,6 +72,8 @@ async function getAll(ns, domain, types) {
 	types = types.map(t => t.toUpperCase());
 	if (types.includes('ALL') || types.includes('ANY')) {
 		types = ALL_TYPES;
+	} else if (types.includes('DNSSEC')) {
+		types = [...new Set(types.filter(t => t !== 'DNSSEC').concat(DNSSEC_TYPES))];
 	}
 	const all = new Map();
 	for (const type of types) {
@@ -99,7 +109,11 @@ async function dig(domain, options) {
 	if (options.type && options.short) {
 		exitWithError("only one of -t and -s allowed")
 	}
-	const types = options.type ? options.type : options.short ? options.short : ['ALL'];
+	const types = options.type
+		? options.type
+		: options.short
+			? options.short
+			: ['ALL'];
 	const ns = options.nameserver
 		? getNameserver(options.nameserver)
 		: await findAuthoritativeNameServer(domain);
