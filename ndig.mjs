@@ -9,7 +9,7 @@ $.verbose = false;
 
 // A (Host address)
 // AAAA (IPv6 host address)
-// ALIAS (Auto resolved alias)
+// ?? ALIAS (Auto resolved alias)
 // CNAME (Canonical name for an alias)
 // MX (Mail eXchange)
 // NS (Name Server)
@@ -26,7 +26,7 @@ $.verbose = false;
 // CDS (DNSSEC child zone public key hash)
 
 const DNSSEC_TYPES = ['RRSIG', 'DNSKEY', 'DS', 'NSEC', 'NSEC3', 'CDNSKEY', 'CDS'];
-const ALL_TYPES = ['A', 'AAAA', 'ALIAS', 'CNAME', 'MX', 'NS', 'PTR', 'SOA', 'SRV', 'TXT'].concat(DNSSEC_TYPES);
+const ALL_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'NS', 'PTR', 'SOA', 'SRV', 'TXT'].concat(DNSSEC_TYPES);
 
 function exitWithError(errorMessage) {
 	console.error(chalk.red(errorMessage));
