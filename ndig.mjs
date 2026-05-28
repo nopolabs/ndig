@@ -49,10 +49,11 @@ async function recursiveAuthoritativeNameServer(domain, candidate) {
 		console.log("Zone: " + candidate);
 		return soa;
 	}
-	const parent = candidate.match(/[^.]+\.(.+)/)[1];
-	if (parent === candidate) {
+	const match = candidate.match(/[^.]+\.(.+)/);
+	if (!match || match[1] === candidate) {
 		exitWithError(`No SOA for "${domain}"`);
 	}
+	const parent = match[1];
 	return await recursiveAuthoritativeNameServer(domain, parent);
 }
 

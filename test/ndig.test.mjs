@@ -163,6 +163,15 @@ test("CLI: missing domain exits non-zero", () => {
 	assert.notEqual(status, 0);
 });
 
+test("CLI: bare label with no dot exits non-zero with error message", () => {
+	const { stderr, status } = spawnSync("node", [NDIG, "--", "nopolabs"], {
+		encoding: "utf8",
+		timeout: 10000,
+	});
+	assert.notEqual(status, 0);
+	assert.match(stderr, /No SOA for "nopolabs"/);
+});
+
 test("CLI: -t and -s together exit non-zero", () => {
 	const { status } = spawnSync(
 		"node",
