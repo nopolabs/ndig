@@ -1,13 +1,13 @@
 {
   "name": "ndig",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Get DNS records using dig",
+  "main": "ndig.mjs",
   "scripts": {
     "pretest": "npm run lint",
     "test": "echo \"Error: no test specified\" && exit 1",
     "posttest": "npm run format",
-    "format": "prettier --loglevel warn --write \"**/*.{js,css,md}\"",
+    "format": "prettier --log-level warn --write \"**/*.{js,mjs,css,md}\"",
     "lint": "eslint . --cache --fix"
   },
   "keywords": [],
@@ -15,12 +15,12 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "commander": "^9.4.0",
-    "zx": "^7.0.8"
+    "commander": "^14.0.3",
+    "zx": "^8.8.5"
   },
   "devDependencies": {
-    "eslint": "^8.23.0",
-    "prettier": "^2.7.1"
+    "eslint": "^9.0.0",
+    "prettier": "^3.8.3"
   },
   "bin": {
     "ndig": "./ndig.mjs"

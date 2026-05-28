@@ -1,6 +1,7 @@
 # ndig
 
 ## usage
+
 ```shell
 Usage: ndig [options] <domain>
 
@@ -11,17 +12,22 @@ Arguments:
 
 Options:
   -V, --version          output the version number
+  -v, --verbose          verbose output
+  -u, --unsorted         unsorted output
+  -n, --nameserver       nameserver to query (default is SOA)
+                         aliases: cloudflare, comodo, google, opendns, quad9, verisign
   -t, --type [type...]   record type
   -s, --short [type...]  record type (short output)
   -h, --help             display help for command
 
 Commands:
   help [command]         display help for command
-
-Supported types: A, AAAA, ALIAS, CNAME, MX, NS, PTR, SOA, SRV, TXT, or ALL
 ```
 
+Supported types: A, AAAA, ALIAS, CNAME, MX, NS, PTR, SOA, SRV, TXT, or ALL
+
 ## install
+
 ```shell
 npm install
 npm link
