@@ -5,8 +5,7 @@
   "main": "ndig.mjs",
   "scripts": {
     "pretest": "npm run lint",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "posttest": "npm run format",
+    "test": "node --test test/ndig.test.mjs",
     "format": "prettier --log-level warn --write \"**/*.{js,mjs,css,md}\"",
     "lint": "eslint . --cache --fix"
   },
