@@ -29,9 +29,42 @@ $.verbose = false;
 const DNSSEC_TYPES = ["RRSIG", "DNSKEY", "DS", "NSEC", "NSEC3", "CDNSKEY", "CDS"];
 const ALL_TYPES = ["A", "AAAA", "CNAME", "MX", "NS", "PTR", "SOA", "SRV", "TXT"].concat(DNSSEC_TYPES);
 
+// Color theme — edit here to restyle all output at once.
+const THEME = {
+	zonelabel: chalk.rgb(249, 226, 175), // warm yellow
+	zonename:  chalk.rgb(137, 180, 250), // soft blue
+	name:      (s) => s,                 // default terminal foreground
+	ttl:       chalk.dim,
+	cls:       chalk.dim,
+	type:      chalk.rgb(203, 166, 247), // soft purple
+	value:     chalk.rgb(166, 227, 161), // soft green
+	queried:   chalk.dim,
+	ns:        chalk.rgb(137, 180, 250), // soft blue (matches zonename)
+};
+
 function exitWithError(errorMessage) {
 	console.error(chalk.red(errorMessage));
 	process.exit(1);
+}
+
+// Colorize a single dig answer line.
+// dig pads the name column with multiple tabs for alignment; the regex captures
+// each run of tabs so they are preserved in the output unchanged.
+function colorize(record) {
+	const match = record.match(/^(\S+)(\t+)(\d+)(\t+)(\S+)(\t+)(\S+)(\t+)([\s\S]+)$/);
+	if (!match) return record;
+	const [, name, t1, ttl, t2, cls, t3, type, t4, value] = match;
+	return (
+		THEME.name(name) +
+		t1 +
+		THEME.ttl(ttl) +
+		t2 +
+		THEME.cls(cls) +
+		t3 +
+		THEME.type(type) +
+		t4 +
+		THEME.value(value)
+	);
 }
 
 async function getAuthoritativeNameServer(domain) {
@@ -46,8 +79,7 @@ async function getAuthoritativeNameServer(domain) {
 async function recursiveAuthoritativeNameServer(domain, candidate) {
 	const soa = await getAuthoritativeNameServer(candidate);
 	if (soa) {
-		console.log("Zone: " + candidate);
-		return soa;
+		return { ns: soa, zone: candidate };
 	}
 	const match = candidate.match(/[^.]+\.(.+)/);
 	if (!match || match[1] === candidate) {
@@ -58,14 +90,14 @@ async function recursiveAuthoritativeNameServer(domain, candidate) {
 }
 
 async function findAuthoritativeNameServer(domain) {
-	const soa = await recursiveAuthoritativeNameServer(domain, domain);
-	if (!soa) {
+	const result = await recursiveAuthoritativeNameServer(domain, domain);
+	if (!result) {
 		const parent = domain.split(".", 2)[0];
 		if (parent === domain) {
 			exitWithError(`No SOA for "${domain}"`);
 		}
 	}
-	return soa;
+	return result;
 }
 
 async function getRecords(ns, domain, type) {
@@ -103,20 +135,13 @@ async function getAll(ns, domain, types) {
 
 function getNameserver(nameserver) {
 	switch (nameserver) {
-		case "cloudflare":
-			return "1.1.1.1";
-		case "comodo":
-			return "8.26.56.26";
-		case "google":
-			return "8.8.8.8";
-		case "opendns":
-			return "208.67.222.222";
-		case "quad9":
-			return "9.9.9.9";
-		case "verisign":
-			return "64.6.64.6";
-		default:
-			return nameserver;
+		case "cloudflare": return "1.1.1.1";
+		case "comodo":     return "8.26.56.26";
+		case "google":     return "8.8.8.8";
+		case "opendns":    return "208.67.222.222";
+		case "quad9":      return "9.9.9.9";
+		case "verisign":   return "64.6.64.6";
+		default:           return nameserver;
 	}
 }
 
@@ -139,30 +164,40 @@ async function dig(domain, options) {
 		: options.short
 			? options.short
 			: ["ALL"];
-	const ns = options.nameserver
-		? getNameserver(options.nameserver)
-		: await findAuthoritativeNameServer(domain);
+
+	let ns, zone;
+	if (options.nameserver) {
+		ns = getNameserver(options.nameserver);
+	} else {
+		({ ns, zone } = await findAuthoritativeNameServer(domain));
+	}
+
+	if (!options.short && zone) {
+		console.log(THEME.zonelabel("Zone: ") + THEME.zonename(zone));
+	}
+
 	const recordsMap = await getAll(ns, domain, types);
 	const format = options.short
 		? (record) => record.replace(/^\S+\s+\S+\s+\S+\s+\S+\s+/, "")
-		: (record) => record;
+		: colorize;
+
 	recordsMap.forEach((records, type) => {
 		if (!options.unsorted) {
 			records.sort((a, b) => {
-				// compare the 5th field of each record
 				const av = getCompareValue(a, type);
 				const bv = getCompareValue(b, type);
-				if (av < bv) {
-					return -1;
-				}
-				if (av > bv) {
-					return 1;
-				}
+				if (av < bv) return -1;
+				if (av > bv) return 1;
 				return 0;
 			});
 		}
 		records.forEach((record) => console.log(format(record)));
 	});
+
+	if (!options.short) {
+		const annotation = zone ? " (authoritative)" : "";
+		console.log("\n" + THEME.queried("queried ") + THEME.ns(ns) + THEME.queried(annotation));
+	}
 }
 
 const program = new Command()
@@ -199,7 +234,7 @@ function fixArgv(argv) {
 	return rest.concat("--", domain);
 }
 
-export { getNameserver, getCompareValue, fixArgv };
+export { getNameserver, getCompareValue, fixArgv, colorize };
 
 if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
 	program.parse(fixArgv(process.argv));

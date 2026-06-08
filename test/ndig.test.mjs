@@ -4,10 +4,52 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-import { getNameserver, getCompareValue, fixArgv } from "../ndig.mjs";
+import { getNameserver, getCompareValue, fixArgv, colorize } from "../ndig.mjs";
+
+// Strip ANSI escape codes so content assertions aren't affected by chalk output.
+function stripAnsi(str) {
+	// eslint-disable-next-line no-control-regex
+	return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "");
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const NDIG = join(__dirname, "..", "ndig.mjs");
+
+// ---------------------------------------------------------------------------
+// colorize
+// ---------------------------------------------------------------------------
+
+test("colorize: preserves all five tab-separated fields", () => {
+	const record = "example.com.\t300\tIN\tA\t93.184.216.34";
+	const plain = stripAnsi(colorize(record));
+	assert.match(plain, /example\.com\./);
+	assert.match(plain, /300/);
+	assert.match(plain, /IN/);
+	assert.match(plain, /\tA\t/);
+	assert.match(plain, /93\.184\.216\.34/);
+});
+
+test("colorize: preserves double-tab padding that dig emits for short names", () => {
+	// dig pads names to tab stops; a short name like "a.com." gets two tabs before the TTL
+	const record = "a.com.\t\t300\tIN\tA\t1.2.3.4";
+	const plain = stripAnsi(colorize(record));
+	assert.match(plain, /a\.com\.\t\t/);
+	assert.match(plain, /300/);
+	assert.match(plain, /1\.2\.3\.4/);
+});
+
+test("colorize: includes MX priority and hostname in value field", () => {
+	const record = "example.com.\t300\tIN\tMX\t10\tmail.example.com.";
+	const plain = stripAnsi(colorize(record));
+	assert.match(plain, /MX/);
+	assert.match(plain, /10/);
+	assert.match(plain, /mail\.example\.com\./);
+});
+
+test("colorize: passes through records that don't match dig answer format", () => {
+	const short = "not\tenough\tfields";
+	assert.equal(colorize(short), short);
+});
 
 // ---------------------------------------------------------------------------
 // getNameserver
@@ -188,7 +230,9 @@ test("CLI: queries A records for google.com via Google DNS", () => {
 		{ encoding: "utf8", timeout: 10000 },
 	);
 	assert.equal(status, 0);
-	assert.match(stdout, /google\.com\.\s+\d+\s+IN\s+A\s+\d+\.\d+\.\d+\.\d+/);
+	const plain = stripAnsi(stdout);
+	assert.match(plain, /google\.com\.\s+\d+\s+IN\s+A\s+\d+\.\d+\.\d+\.\d+/);
+	assert.match(plain, /queried\s+8\.8\.8\.8\b/);
 });
 
 test("CLI: -s (short) strips the first four fields", () => {
